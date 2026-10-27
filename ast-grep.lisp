@@ -192,6 +192,7 @@ but no oversized stream is loaded into Lisp. Returns stdout, stderr, exit code."
                              :text (required-field result "text" 'string)))))
 
 (defmethod backend-query ((backend ast-grep-backend) snapshot &key language pattern)
+  "Run ast-grep on SNAPSHOT and return its matches sorted by start offset."
   (let* ((results (request-results backend snapshot :language language :pattern pattern))
          (query-id (identity-digest "ast-grep" language pattern))
          (matches nil)
@@ -205,6 +206,7 @@ but no oversized stream is loaded into Lisp. Returns stdout, stderr, exit code."
     (stable-sort matches #'< :key #'match--start)))
 
 (defmethod backend-rewrite ((backend ast-grep-backend) snapshot &key language pattern replacement)
+  "Run an ast-grep rewrite on SNAPSHOT and return an edit plan of its replacements."
   (unless (stringp replacement) (fail ':invalid-query))
   (let* ((results (request-results backend snapshot :language language :pattern pattern
                                    :replacement replacement))
