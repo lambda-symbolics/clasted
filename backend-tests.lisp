@@ -15,13 +15,13 @@
 
 (defun run-real-backend-tests ()
   "Exercise real ast-grep syntax, Unicode, rewrite ranges and failure paths."
-  (let* ((program (backend-test-program))
-         (backend (make-ast-grep-backend :program program))
-         (text (format nil "const é = foo(1);~%foo(\"😀\");~%"))
+  (let* ((program  (backend-test-program))
+         (backend  (make-ast-grep-backend :program program))
+         (text     (format nil "const é = foo(1);~%foo(\"😀\");~%"))
          (snapshot (make-snapshot :file "workspace:é.js" :revision "r1" :text text))
-         (matches (query backend snapshot :language "javascript" :pattern "foo($A)"))
-         (plan (rewrite backend snapshot :language "javascript"
-                        :pattern "foo($A)" :replacement "bar($A)")))
+         (matches  (query backend snapshot :language "javascript" :pattern "foo($A)"))
+         (plan     (rewrite backend snapshot :language "javascript"
+                            :pattern "foo($A)" :replacement "bar($A)")))
     (test-check (= 2 (length matches)))
     (test-check (equal '(10 18) (mapcar #'match-start matches)))
     (test-check (equal '(11 19) (mapcar #'match-start-byte matches)))
@@ -30,7 +30,7 @@
     (test-check (equal '("foo(1)" "foo(\"😀\")") (mapcar #'match-text matches)))
     (test-check (equal (mapcar #'match-id matches)
                        (mapcar #'match-id (query backend snapshot :language "javascript"
-                                                  :pattern "foo($A)"))))
+                                                  :pattern                  "foo($A)"))))
     (test-check (string= (plan-preview plan)
                         (format nil "const é = bar(1);~%bar(\"😀\");~%")))
     (test-check (string= text (snapshot-text snapshot)))
@@ -94,15 +94,15 @@
                  (funcall function value)
                  (argo:json-encode value))))
         (dolist (mutation (list
-                          (lambda (value) (remhash "file" (aref value 0)))
-                          (lambda (value) (setf (gethash "file" (aref value 0)) "other.js"))
-                          (lambda (value) (setf (gethash "text" (aref value 0)) "wrong"))
-                          (lambda (value) (setf (gethash "text" (aref value 0)) nil))
-                          (lambda (value) (remhash "replacement" (aref value 0)))
-                          (lambda (value) (remhash "replacementOffsets" (aref value 0)))
-                          (lambda (value) (setf (gethash "language" (aref value 0)) 1))
-                          (lambda (value)
-                            (setf (gethash "start" (gethash "byteOffset" (gethash "range" (aref value 0)))) -1))))
+                           (lambda (value) (remhash "file" (aref value 0)))
+                           (lambda (value) (setf (gethash "file" (aref value 0)) "other.js"))
+                           (lambda (value) (setf (gethash "text" (aref value 0)) "wrong"))
+                           (lambda (value) (setf (gethash "text" (aref value 0)) nil))
+                           (lambda (value) (remhash "replacement" (aref value 0)))
+                           (lambda (value) (remhash "replacementOffsets" (aref value 0)))
+                           (lambda (value) (setf (gethash "language" (aref value 0)) 1))
+                           (lambda (value)
+                             (setf (gethash "start" (gethash "byteOffset" (gethash "range" (aref value 0)))) -1))))
           (let ((response (mutated mutation)))
             (test-check
              (handler-case
@@ -117,9 +117,9 @@
                                  (gethash "replacement" (aref value 0)) "X")))))
           ;; Actual fixer ranges need not equal the matched node's range.
           (test-check (= 6 (edit-start (first (plan-edits
-                                              (rewrite (fixture-backend response) snapshot
-                                                       :language "javascript" :pattern "foo($A)"
-                                                       :replacement "bar($A)")))))))
+                                               (rewrite (fixture-backend response) snapshot
+                                                        :language "javascript" :pattern "foo($A)"
+                                                        :replacement "bar($A)")))))))
         (let ((duplicate (argo:json-decode output)))
           (setf (aref duplicate 1) (aref duplicate 0))
           (test-error ':backend-contract
@@ -140,12 +140,12 @@
                                   :language "javascript" :pattern "foo($A)")))
     (test-error ':backend-failure
                 (lambda () (query (make-ast-grep-backend :runner (lambda (&rest arguments)
-                                                                 (declare (ignore arguments))
-                                                                 (error "runner broke")))
+                                                                  (declare (ignore arguments))
+                                                                  (error "runner broke")))
                                   snapshot :language "javascript" :pattern "foo($A)")))
     (test-error ':query-limit
                 (lambda () (query backend snapshot :language "javascript"
-                                  :pattern (make-string 65537 :initial-element #\x))))
+                                  :pattern                   (make-string 65537 :initial-element #\x))))
     (test-error ':invalid-query
                 (lambda () (rewrite backend snapshot :language "javascript"
                                     :pattern "foo($A)" :replacement nil))))

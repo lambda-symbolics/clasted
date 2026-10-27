@@ -16,12 +16,12 @@
 
 (defun run-core-tests ()
   "Exercise snapshot ownership, stable identities, spans and ordered previews."
-  (let* ((source (copy-seq "aé😀z"))
-         (file (copy-seq "workspace:α.js"))
+  (let* ((source   (copy-seq "aé😀z"))
+         (file     (copy-seq "workspace:α.js"))
          (revision (copy-seq "R1"))
          (snapshot (make-snapshot :file file :revision revision :text source))
-         (match (make-structural-match :snapshot snapshot :query-id "Q"
-                                       :start-byte 1 :end-byte 7 :text "é😀")))
+         (match    (make-structural-match :snapshot snapshot :query-id "Q"
+                                          :start-byte 1 :end-byte 7 :text "é😀")))
     (setf (char source 0) #\b (char file 0) #\x (char revision 0) #\x)
     (test-check (string= (snapshot-text snapshot) "aé😀z"))
     (test-check (string= (snapshot-file snapshot) "workspace:α.js"))
@@ -54,9 +54,9 @@
                     (lambda () (make-structural-match :snapshot snapshot :query-id "Q"
                                                       :start-byte start :end-byte end :text text)))))
     (let* ((replacement (copy-seq "λ"))
-           (edit (make-edit :start 1 :end 3 :replacement replacement))
-           (plan (make-edit-plan :snapshot snapshot
-                                :edits (list (make-edit :start 3 :end 4 :replacement "!") edit))))
+           (edit        (make-edit :start 1 :end 3 :replacement replacement))
+           (plan        (make-edit-plan :snapshot snapshot
+                                       :edits     (list (make-edit :start 3 :end 4 :replacement "!") edit))))
       (setf (char replacement 0) #\x)
       (test-check (string= (edit-replacement edit) "λ"))
       (test-check (eq snapshot (plan-snapshot plan)))
@@ -75,20 +75,20 @@
     (test-check (string= "aé😀z" (plan-preview (make-edit-plan :snapshot snapshot :edits nil))))
     (test-check (string= "aé😀z!"
                         (plan-preview (make-edit-plan :snapshot snapshot
-                                       :edits (list (make-edit :start 4 :end 4 :replacement "!"))))))
+                                       :edits                   (list (make-edit :start 4 :end 4 :replacement "!"))))))
     (test-check (string= ""
                         (plan-preview (make-edit-plan :snapshot snapshot
-                                       :edits (list (make-edit :start 0 :end 4 :replacement ""))))))
+                                       :edits                   (list (make-edit :start 0 :end 4 :replacement ""))))))
     (dolist (spans '(((0 3) (2 4)) ((0 4) (1 2)) ((1 1) (1 1)) ((1 3) (1 3))
                      ((1 3) (1 1)) ((1 3) (2 2))))
       (test-error ':overlapping-edits
                   (lambda () (make-edit-plan :snapshot snapshot
-                               :edits (mapcar (lambda (span)
-                                                (make-edit :start (first span) :end (second span)
-                                                           :replacement "x")) spans)))))
+                               :edits                  (mapcar (lambda (span)
+                                                                 (make-edit :start (first span) :end (second span)
+                                                                            :replacement "x")) spans)))))
     (test-error ':invalid-span
                 (lambda () (make-edit-plan :snapshot snapshot
-                             :edits (list (make-edit :start 4 :end 5 :replacement "x")))))
+                             :edits                  (list (make-edit :start 4 :end 5 :replacement "x")))))
     (test-error ':source-limit
                 (lambda () (make-snapshot :file "f" :revision "r" :text "é" :maximum-bytes 1)))
     (test-error ':invalid-text
@@ -96,7 +96,7 @@
     (test-error ':invalid-snapshot
                 (lambda () (make-snapshot :file "" :revision "r" :text "")))
     (test-check (not (string= (identity-digest "a" "bc") (identity-digest "ab" "c")))))
-  (let* ((text "aé→😀")
+  (let* ((text     "aé→😀")
          (snapshot (make-snapshot :file "unicode" :revision "r" :text text)))
     (loop for start in '(0 1 3 6 10) for index from 0
           do (let ((match (make-structural-match :snapshot snapshot :query-id "Q"
@@ -107,7 +107,7 @@
                   (lambda () (make-structural-match :snapshot snapshot :query-id "Q"
                                                    :start-byte invalid :end-byte invalid :text "")))))
   (let* ((snapshot (make-snapshot :file "f" :revision "r" :text "x"))
-         (edit (make-edit :start 0 :end 1 :replacement "y"))
+         (edit     (make-edit :start 0 :end 1 :replacement "y"))
          (circular (list edit)))
     (test-error ':invalid-plan
                 (lambda () (make-edit-plan :snapshot snapshot :edits (cons edit 'tail))))

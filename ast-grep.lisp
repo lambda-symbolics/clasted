@@ -34,8 +34,8 @@ It must bound capture and honor timeout/cancellation; no shell is involved."
                (or (null cancelled-p) (functionp cancelled-p)))
     (fail ':invalid-backend))
   (make-instance 'ast-grep-backend :program (copy-seq program) :runner runner
-                 :maximum-output-bytes maximum-output-bytes
-                 :maximum-matches maximum-matches
+                 :maximum-output-bytes  maximum-output-bytes
+                 :maximum-matches       maximum-matches
                  :maximum-preview-bytes maximum-preview-bytes
                  :timeout timeout :cancelled-p cancelled-p))
 
@@ -76,13 +76,13 @@ but no oversized stream is loaded into Lisp. Returns stdout, stderr, exit code."
            (setf remaining (rest remaining)))
   (check-cancelled cancelled-p)
   (uiop:with-temporary-file (:pathname input-path :stream input-stream
-                            :direction :output :element-type '(unsigned-byte 8))
+                             :direction :output :element-type '(unsigned-byte 8))
     (write-sequence (utf8 input) input-stream)
     :close-stream
     (uiop:with-temporary-file (:pathname output-path)
       (uiop:with-temporary-file (:pathname error-path)
-        (let ((process nil)
-              (start (get-internal-real-time))
+        (let ((process  nil)
+              (start    (get-internal-real-time))
               (finished nil))
           (unwind-protect
                (progn
@@ -122,7 +122,7 @@ but no oversized stream is loaded into Lisp. Returns stdout, stderr, exit code."
 (defun offsets (object)
   "Validate a JSON half-open unsigned byte-offset object."
   (let ((start (required-field object "start" '(integer 0)))
-        (end (required-field object "end" '(integer 0))))
+        (end   (required-field object "end" '(integer 0))))
     (unless (<= start end) (fail ':backend-contract))
     (values start end)))
 
@@ -144,8 +144,8 @@ but no oversized stream is loaded into Lisp. Returns stdout, stderr, exit code."
         (handler-case
             (funcall (backend--runner backend) command (snapshot-text snapshot)
                      :maximum-output-bytes (backend--output-limit backend)
-                     :timeout (backend--timeout backend)
-                     :cancelled-p (backend--cancelled-p backend))
+                     :timeout              (backend--timeout backend)
+                     :cancelled-p          (backend--cancelled-p backend))
           (structural-error (condition) (error condition))
           (error () (fail ':backend-failure)))
       (check-cancelled (backend--cancelled-p backend))
@@ -160,11 +160,11 @@ but no oversized stream is loaded into Lisp. Returns stdout, stderr, exit code."
                   (argo:json-decode
                    output :limits
                    (argo:make-json-limits
-                    :maximum-characters (backend--output-limit backend)
-                    :maximum-depth 32
-                    :maximum-nodes (* 128 (1+ (backend--match-limit backend)))
+                    :maximum-characters        (backend--output-limit backend)
+                    :maximum-depth             32
+                    :maximum-nodes             (* 128 (1+ (backend--match-limit backend)))
                     :maximum-string-characters (backend--output-limit backend)
-                    :maximum-array-elements (backend--match-limit backend)
+                    :maximum-array-elements    (backend--match-limit backend)
                     :maximum-number-characters 32))
                 (argo:json-limit-exceeded () (fail ':result-limit))
                 (argo:json-error () (fail ':backend-contract)))))
@@ -179,7 +179,7 @@ but no oversized stream is loaded into Lisp. Returns stdout, stderr, exit code."
   (unless (string= (required-field result "file" 'string) "STDIN")
     (fail ':backend-contract))
   (required-field result "language" 'string)
-  (let* ((range (required-field result "range" 'hash-table))
+  (let* ((range       (required-field result "range" 'hash-table))
          (byte-offset (required-field range "byteOffset" 'hash-table)))
     ;; Position columns are presentation fields, never character edit offsets.
     (dolist (field '("start" "end"))
@@ -193,10 +193,10 @@ but no oversized stream is loaded into Lisp. Returns stdout, stderr, exit code."
 
 (defmethod backend-query ((backend ast-grep-backend) snapshot &key language pattern)
   "Run ast-grep on SNAPSHOT and return its matches sorted by start offset."
-  (let* ((results (request-results backend snapshot :language language :pattern pattern))
+  (let* ((results  (request-results backend snapshot :language language :pattern pattern))
          (query-id (identity-digest "ast-grep" language pattern))
-         (matches nil)
-         (seen (make-hash-table :test #'equal)))
+         (matches  nil)
+         (seen     (make-hash-table :test #'equal)))
     (loop for result across results
           do (check-cancelled (backend--cancelled-p backend))
              (let ((match (result-match result snapshot query-id)))
@@ -208,10 +208,10 @@ but no oversized stream is loaded into Lisp. Returns stdout, stderr, exit code."
 (defmethod backend-rewrite ((backend ast-grep-backend) snapshot &key language pattern replacement)
   "Run an ast-grep rewrite on SNAPSHOT and return an edit plan of its replacements."
   (unless (stringp replacement) (fail ':invalid-query))
-  (let* ((results (request-results backend snapshot :language language :pattern pattern
-                                   :replacement replacement))
+  (let* ((results  (request-results backend snapshot :language language :pattern pattern
+                                    :replacement replacement))
          (query-id (identity-digest "ast-grep" language pattern))
-         (edits nil))
+         (edits    nil))
     (loop for result across results
           do (check-cancelled (backend--cancelled-p backend))
              (result-match result snapshot query-id)
@@ -219,8 +219,8 @@ but no oversized stream is loaded into Lisp. Returns stdout, stderr, exit code."
                  (offsets (required-field result "replacementOffsets" 'hash-table))
                ;; Replacement offsets can differ from match offsets. Honor the
                ;; actual fixer range rather than silently using the match span.
-               (push (make-edit :start (byte-index snapshot start)
-                                :end (byte-index snapshot end)
+               (push (make-edit :start       (byte-index snapshot start)
+                                :end         (byte-index snapshot end)
                                 :replacement (required-field result "replacement" 'string))
                      edits)))
     (make-edit-plan :snapshot snapshot :edits edits
