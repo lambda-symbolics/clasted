@@ -118,3 +118,18 @@ Cargo.lock and `cargo build --release --locked -p ast-grep`. Build artifacts
 were confined to the workspace `.cache` checkout; no system installation was
 performed. For a separately scoped dependency cache, set `CARGO_HOME` to a
 workspace `.cache` directory when building.
+
+## Development
+
+```sh
+./script/bootstrap
+./script/check
+./script/check --fix
+```
+
+`./script/check` runs both test systems, then checks the source with
+[cheque](https://github.com/lambda-symbolics/cheque) as `cheque.sexp`
+configures it. The ast-grep suite needs a real executable, as described above.
+`--fix` skips the tests and repairs what cheque can repair. cheque and its tools
+are development dependencies: `checks/qlfile` lists them, and the check installs
+them on first use into `~/.cache/cheque/tools/`.
