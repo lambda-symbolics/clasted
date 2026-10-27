@@ -1,4 +1,5 @@
 (defpackage #:clasted
+  (:documentation "Structural queries over immutable source snapshots and previewed edit plans.")
   (:use #:cl)
   (:export #:structural-error #:structural-error-code
            #:snapshot #:make-snapshot #:snapshot-id #:snapshot-file
