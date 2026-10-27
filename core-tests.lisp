@@ -1,6 +1,7 @@
 (in-package #:clasted)
 
-(defvar *test-checks* 0)
+(defvar *test-checks* 0
+  "The number of assertions that passed in the current test run.")
 
 (defun test-check (value)
   "Record a successful assertion or signal a test failure."
