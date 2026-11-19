@@ -1,5 +1,5 @@
 (asdf:defsystem "clasted"
-  :description "Immutable structural queries and previewed edit plans"
+  :description "Common Lisp AST editing library"
   :author "Lambda Symbolics" :license "ISC" :version "0.1.0"
   :depends-on  ("babel" "ironclad/digest/sha256")
   :serial t :components ((:file "package") (:file "structural"))
