@@ -72,7 +72,11 @@
       (test-error ':result-limit
                   (lambda () (make-edit-plan :snapshot snapshot :edits (plan-edits plan)
                                              :maximum-edits 1))))
-    (test-check (string= "aé😀z" (plan-preview (make-edit-plan :snapshot snapshot :edits nil))))
+    (test-check (plan-empty-p (make-edit-plan :snapshot snapshot :edits nil)))
+    (let* ((edit      (make-edit :start 0 :end 1 :replacement "a"))
+           (unchanged (make-edit-plan :snapshot snapshot :edits (list edit))))
+      (test-check (not (plan-empty-p unchanged)))
+      (test-check (string= (snapshot-text snapshot) (plan-preview unchanged))))
     (test-check (string= "aé😀z!"
                         (plan-preview (make-edit-plan :snapshot snapshot
                                        :edits                   (list (make-edit :start 4 :end 4 :replacement "!"))))))

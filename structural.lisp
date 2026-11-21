@@ -230,6 +230,10 @@ Coincident insertions, duplicate and nested edits are rejected, not merged."
   "Return the immutable snapshot to revalidate before publication."
   (plan--snapshot plan))
 
+(defun plan-empty-p (plan)
+  "Return true when PLAN contains no edits."
+  (null (plan--edits plan)))
+
 (defun plan-edits (plan)
   "Return a fresh list of immutable edits in ascending source order."
   (copy-list (plan--edits plan)))

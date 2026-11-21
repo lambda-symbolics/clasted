@@ -16,28 +16,33 @@
    (timeout :initarg :timeout :reader backend--timeout
             :documentation "Maximum process runtime in seconds.")
    (cancelled-p :initarg :cancelled-p :reader backend--cancelled-p
-                :documentation "Optional synchronous cancellation predicate."))
+                :documentation "Optional synchronous cancellation predicate.")
+   (pre-run :initarg :pre-run :reader backend--pre-run :initform nil
+            :documentation "Optional callback receiving a copy of final argv before dispatch."))
   (:documentation "Immutable stdin ast-grep queries with validated JSON results."))
 
 (defun make-ast-grep-backend (&key (program "ast-grep") (runner #'run-ast-grep)
-                                 (maximum-output-bytes (* 8 1024 1024))
-                                 (maximum-matches 10000)
-                                 (maximum-preview-bytes (* 16 1024 1024))
-                                 (timeout 30) cancelled-p)
+                                   (maximum-output-bytes (* 8 1024 1024))
+                                   (maximum-matches 10000)
+                                   (maximum-preview-bytes (* 16 1024 1024))
+                                   (timeout 30) cancelled-p pre-run)
   "Construct an optional CLI backend. RUNNER returns stdout, stderr, exit code.
 RUNNER receives COMMAND, INPUT, :MAXIMUM-OUTPUT-BYTES, :TIMEOUT, :CANCELLED-P.
-It must bound capture and honor timeout/cancellation; no shell is involved."
+It must bound capture and honor timeout/cancellation; no shell is involved.
+PRE-RUN receives a fresh list of copied argv strings before dispatch. If it
+signals an error, the condition propagates unchanged and RUNNER is not called."
   (unless (and (stringp program) (plusp (length program)) (functionp runner)
                (every (lambda (value) (and (integerp value) (<= 0 value)))
                       (list maximum-output-bytes maximum-matches maximum-preview-bytes))
                (realp timeout) (plusp timeout)
-               (or (null cancelled-p) (functionp cancelled-p)))
+               (or (null cancelled-p) (functionp cancelled-p))
+               (or (null pre-run) (functionp pre-run)))
     (fail ':invalid-backend))
   (make-instance 'ast-grep-backend :program (copy-seq program) :runner runner
                  :maximum-output-bytes  maximum-output-bytes
                  :maximum-matches       maximum-matches
                  :maximum-preview-bytes maximum-preview-bytes
-                 :timeout timeout :cancelled-p cancelled-p))
+                 :timeout timeout :cancelled-p cancelled-p :pre-run pre-run))
 
 (defun check-cancelled (predicate)
   "Check synchronous cancellation without swallowing predicate failures."
@@ -140,6 +145,8 @@ but no oversized stream is loaded into Lisp. Returns stdout, stderr, exit code."
                               (concatenate 'string "--pattern=" pattern))
                          (when replacement
                            (list (concatenate 'string "--rewrite=" replacement))))))
+    (when (backend--pre-run backend)
+      (funcall (backend--pre-run backend) (mapcar #'copy-seq command)))
     (multiple-value-bind (output errors code)
         (handler-case
             (funcall (backend--runner backend) command (snapshot-text snapshot)

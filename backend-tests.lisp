@@ -13,6 +13,40 @@
              (declare (ignore command input maximum-output-bytes timeout cancelled-p))
              (values output errors code))))
 
+(define-condition admission-denial (error) ()
+  (:documentation "A caller-owned denial condition for the admission boundary test."))
+
+(defun run-admission-tests (snapshot)
+  "Verify final argv isolation and preservation of a caller's veto condition."
+  (let ((approved nil) (dispatched nil)
+        (denial (make-condition 'admission-denial)))
+    (flet ((runner (argv input &key maximum-output-bytes timeout cancelled-p)
+             (declare (ignore input maximum-output-bytes timeout cancelled-p))
+             (setf dispatched argv)
+             (values "[]" "" 1)))
+      (test-check
+       (plan-empty-p
+        (rewrite (make-ast-grep-backend
+                  :runner  #'runner
+                  :pre-run (lambda (argv)
+                             (setf approved (mapcar #'copy-seq argv))
+                             (setf (char (first argv) 0) #\X (first (last argv)) "changed")))
+                 snapshot :language "javascript" :pattern "foo($A)" :replacement "bar($A)")))
+      (test-check (equal approved dispatched))
+      (test-check (equal (first (last approved)) "--rewrite=bar($A)"))
+      (setf dispatched nil)
+      (test-check
+       (eq denial
+           (handler-case
+              (query (make-ast-grep-backend
+                      :runner  #'runner
+                      :pre-run (lambda (argv)
+                                 (declare (ignore argv))
+                                 (error denial)))
+                     snapshot :language "javascript" :pattern "foo($A)")
+             (admission-denial (condition) condition))))
+      (test-check (null dispatched)))))
+
 (defun run-real-backend-tests ()
   "Exercise real ast-grep syntax, Unicode, rewrite ranges and failure paths."
   (let* ((program  (backend-test-program))
@@ -36,9 +70,10 @@
     (test-check (string= text (snapshot-text snapshot)))
     (test-check (equal '(10 18) (mapcar #'edit-start (plan-edits plan))))
     (test-check (null (query backend snapshot :language "javascript" :pattern "missing($A)")))
-    (test-check (string= text
-                        (plan-preview (rewrite backend snapshot :language "javascript"
-                                               :pattern "missing($A)" :replacement ""))))
+    (let ((empty (rewrite backend snapshot :language "javascript"
+                                           :pattern "missing($A)" :replacement "")))
+      (test-check (plan-empty-p empty))
+      (test-check (string= text (plan-preview empty))))
     (test-check (string= (format nil "const é = ;~%;~%")
                         (plan-preview (rewrite backend snapshot :language "javascript"
                                                :pattern "foo($A)" :replacement ""))))
@@ -138,6 +173,7 @@
     (test-error ':backend-exit
                 (lambda () (query (fixture-backend "[]" :code 2) snapshot
                                   :language "javascript" :pattern "foo($A)")))
+    (run-admission-tests snapshot)
     (test-error ':backend-failure
                 (lambda () (query (make-ast-grep-backend :runner (lambda (&rest arguments)
                                                                   (declare (ignore arguments))
